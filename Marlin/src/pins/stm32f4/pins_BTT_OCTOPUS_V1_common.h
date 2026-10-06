@@ -122,18 +122,18 @@
   #define X_CS_PIN                          PC4
 #endif
 
-#define Y_STEP_PIN                          PG0   // MOTOR 1
-#define Y_DIR_PIN                           PG1
-#define Y_ENABLE_PIN                        PF15
-#ifndef Y_CS_PIN
-  #define Y_CS_PIN                          PD11
+#define Z_STEP_PIN                          PG0   // MOTOR 1
+#define Z_DIR_PIN                           PG1
+#define Z_ENABLE_PIN                        PF15
+#ifndef Z_CS_PIN
+  #define Z_CS_PIN                          PD11
 #endif
 
-#define Z_STEP_PIN                          PF11  // MOTOR 2
-#define Z_DIR_PIN                           PG3
-#define Z_ENABLE_PIN                        PG5
-#ifndef Z_CS_PIN
-  #define Z_CS_PIN                          PC6
+#define E3_STEP_PIN                          PF11  // MOTOR 2 Z Defekt
+#define E3_DIR_PIN                           PG3
+#define E3_ENABLE_PIN                        PG5
+#ifndef E3_CS_PIN
+  #define E3_CS_PIN                          PC6
 #endif
 
 #define Z2_STEP_PIN                         PG4   // MOTOR 3
@@ -157,21 +157,20 @@
   #define E1_CS_PIN                         PE4
 #endif
 
-#define E2_STEP_PIN                         PE2   // MOTOR 6
-#define E2_DIR_PIN                          PE3
-#define E2_ENABLE_PIN                       PD4
-#ifndef E2_CS_PIN
+#define Y_STEP_PIN                         PE2   // MOTOR 6 E2
+#define Y_DIR_PIN                          PE3
+#define Y_ENABLE_PIN                       PD4
+#ifndef Y_CS_PIN
 
-  #define E2_CS_PIN                         PE1
+  #define Y_CS_PIN                         PE1
 #endif
 
-#define E3_STEP_PIN                         PE6   // MOTOR 7
-#define E3_DIR_PIN                          PA14
-#define E3_ENABLE_PIN                       PE0
-#ifndef E3_CS_PIN
-  #define E3_CS_PIN                         PD3
+#define Y2_STEP_PIN                         PE6   // MOTOR 7 E3
+#define Y2_DIR_PIN                          PA14
+#define Y2_ENABLE_PIN                       PE0
+#ifndef Y2_CS_PIN
+  #define Y2_CS_PIN                         PD3
 #endif
-
 //
 // Temperature Sensors
 //
@@ -189,7 +188,7 @@
 #define HEATER_2_PIN                        PB10  // Heater2
 #define HEATER_3_PIN                        PB11  // Heater3
 
-#define FAN0_PIN                            PA8   // Fan0
+#define SPINDLE_LASER_PWM_PIN               PA8   // Fan0
 #define FAN1_PIN                            PE5   // Fan1
 #define FAN2_PIN                            PD12  // Fan2
 #define FAN3_PIN                            PD13  // Fan3
@@ -240,13 +239,13 @@
   //#define E4_HARDWARE_SERIAL Serial1
 
   #define X_SERIAL_TX_PIN                   PC4
-  #define Y_SERIAL_TX_PIN                   PD11
-  #define Z_SERIAL_TX_PIN                   PC6
-  #define Z2_SERIAL_TX_PIN                  PC7
+  #define Z_SERIAL_TX_PIN                   PD11
+  #define E3_SERIAL_TX_PIN                  PC6   // Motor 2 defekt
+  #define E2_SERIAL_TX_PIN                  PC7
   #define E0_SERIAL_TX_PIN                  PF2
   #define E1_SERIAL_TX_PIN                  PE4
-  #define E2_SERIAL_TX_PIN                  PE1
-  #define E3_SERIAL_TX_PIN                  PD3
+  #define Y_SERIAL_TX_PIN                   PE1   // Motor 6 (E2)
+  #define Y2_SERIAL_TX_PIN                  PD3   // Motor 7 (E3)
 
   // Reduce baud rate to improve software serial reliability
   #ifndef TMC_BAUD_RATE
@@ -449,23 +448,123 @@
   #define BOARD_ST7920_DELAY_3               580
 #endif
 
-#if HAS_SPI_TFT
-  #define TFT_CS_PIN                 EXP2_04_PIN
-  #define TFT_A0_PIN                 EXP2_07_PIN
-  #define TFT_SCK_PIN                EXP2_02_PIN
-  #define TFT_MISO_PIN               EXP2_01_PIN
-  #define TFT_MOSI_PIN               EXP2_06_PIN
+#if HAS_SPI_TFT                               // Config for Classic UI (emulated DOGM) and Color UI
 
-  #define TOUCH_INT_PIN              EXP1_07_PIN
-  #define TOUCH_MISO_PIN             EXP1_06_PIN
-  #define TOUCH_MOSI_PIN             EXP1_03_PIN
-  #define TOUCH_SCK_PIN              EXP1_05_PIN
-  #define TOUCH_CS_PIN               EXP1_04_PIN
+  #define SDCARD_CONNECTION            ONBOARD
 
-  #define BTN_EN1                    EXP2_03_PIN
-  #define BTN_EN2                    EXP2_05_PIN
-  #define BTN_ENC                    EXP1_02_PIN
-#endif
+  #define BEEPER_PIN               EXP1_01_PIN
+
+  #define BTN_ENC                  EXP1_02_PIN
+  #define BTN_EN1                  EXP2_03_PIN
+  #define BTN_EN2                  EXP2_05_PIN
+
+  #define TFT_A0_PIN                TFT_DC_PIN
+
+  #ifndef TFT_WIDTH
+    #define TFT_WIDTH                      480
+  #endif
+  #ifndef TFT_HEIGHT
+    #define TFT_HEIGHT                     320
+  #endif
+
+  #if ENABLED(BTT_TFT35_SPI_V1_0)
+
+    /**
+     *            ------                       ------
+     *    BEEPER | 1  2 | LCD-BTN        MISO | 1  2 | CLK
+     *    T_MOSI | 3  4 | T_CS       LCD-ENCA | 3  4 | TFTCS
+     *     T_CLK | 5  6   T_MISO     LCD-ENCB | 5  6   MOSI
+     *    PENIRQ | 7  8 | F_CS             RS | 7  8 | RESET
+     *       GND | 9 10 | VCC             GND | 9 10 | NC
+     *            ------                       ------
+     *             EXP1                         EXP2
+     *
+     * 480x320, 3.5", SPI Display with Rotary Encoder.
+     * Stock Display for the BIQU B1 SE Series.
+     * Schematic: https://github.com/bigtreetech/TFT35-SPI/blob/master/v1/Hardware/BTT%20TFT35-SPI%20V1-SCH.pdf
+     */
+    #define TFT_CS_PIN             EXP2_04_PIN
+    #define TFT_DC_PIN             EXP2_07_PIN
+
+    #define TFT_SCK_PIN            EXP2_02_PIN
+    #define TFT_MISO_PIN           EXP2_01_PIN
+    #define TFT_MOSI_PIN           EXP2_06_PIN
+
+    #define TOUCH_CS_PIN           EXP1_04_PIN
+    #define TOUCH_SCK_PIN          EXP1_05_PIN
+    #define TOUCH_MISO_PIN         EXP1_06_PIN
+    #define TOUCH_MOSI_PIN         EXP1_03_PIN
+    #define TOUCH_INT_PIN          EXP1_07_PIN
+
+  #elif ENABLED(MKS_TS35_V2_0)
+
+    #ifndef NO_CONTROLLER_CUSTOM_WIRING_WARNING
+      #error "CAUTION! MKS_TS35_V2_0 requires wiring modifications. EXP ports are rotated 180° from what the MKS_TS35_V2_0 expects. (Define NO_CONTROLLER_CUSTOM_WIRING_WARNING to suppress this error.)"
+    #endif
+
+    /**                      ------                                   ------
+     *               BEEPER | 1  2 | BTN_ENC               SPI1_MISO | 1  2 | SPI1_SCK
+     *     TFT_BKL / LCD_EN | 3  4 | TFT_RESET / LCD_RS      BTN_EN1 | 3  4 | SPI1_CS
+     *    TOUCH_CS / LCD_D4 | 5  6   TOUCH_INT / LCD_D5      BTN_EN2 | 5  6   SPI1_MOSI
+     *     SPI1_CS / LCD_D6 | 7  8 | SPI1_RS / LCD_D7       SPI1_RS  | 7  8 | RESET
+     *                  GND | 9 10 | VCC                         GND | 9 10 | VCC
+     *                       ------                                   ------
+     *                        EXP1                                     EXP2
+     */
+    #define TFT_CS_PIN             EXP1_07_PIN
+    #define TFT_DC_PIN             EXP1_08_PIN
+
+    #define TFT_RESET_PIN          EXP1_04_PIN
+    #define TFT_BACKLIGHT_PIN      EXP1_03_PIN
+
+    //#define TFT_RST_PIN          EXP2_07_PIN
+    #define TFT_SCK_PIN            EXP2_02_PIN
+    #define TFT_MISO_PIN           EXP2_01_PIN
+    #define TFT_MOSI_PIN           EXP2_06_PIN
+
+    #define LCD_USE_DMA_SPI
+
+    #define TFT_BUFFER_WORDS             14400
+
+    #define TOUCH_CS_PIN           EXP1_05_PIN
+    #define TOUCH_SCK_PIN          EXP2_02_PIN  // SPI1_SCK
+    #define TOUCH_MISO_PIN         EXP2_01_PIN  // SPI1_MISO
+    #define TOUCH_MOSI_PIN         EXP2_06_PIN  // SPI1_MOSI
+    #define TOUCH_INT_PIN          EXP1_06_PIN
+    //#define TOUCH_BUTTONS_HW_SPI
+    //#define TOUCH_BUTTONS_HW_SPI_DEVICE      1
+
+  #endif
+
+  #if ENABLED(TFT_CLASSIC_UI)
+    #ifndef TOUCH_CALIBRATION_X
+      #define TOUCH_CALIBRATION_X       -16794
+    #endif
+    #ifndef TOUCH_CALIBRATION_Y
+      #define TOUCH_CALIBRATION_Y        11000
+    #endif
+    #ifndef TOUCH_OFFSET_X
+      #define TOUCH_OFFSET_X              1024
+    #endif
+    #ifndef TOUCH_OFFSET_Y
+      #define TOUCH_OFFSET_Y              -352
+    #endif
+
+  #elif ENABLED(TFT_COLOR_UI)
+    #ifndef TOUCH_CALIBRATION_X
+      #define TOUCH_CALIBRATION_X       17619
+    #endif
+    #ifndef TOUCH_CALIBRATION_Y
+      #define TOUCH_CALIBRATION_Y       -11594
+    #endif
+    #ifndef TOUCH_OFFSET_X
+      #define TOUCH_OFFSET_X              -38
+    #endif
+    #ifndef TOUCH_OFFSET_Y
+      #define TOUCH_OFFSET_Y              343
+    #endif
+  #endif
+#endif // HAS_SPI_TFT
 
 //
 // NeoPixel LED
