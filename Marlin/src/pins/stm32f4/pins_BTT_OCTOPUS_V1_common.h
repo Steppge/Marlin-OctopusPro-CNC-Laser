@@ -129,7 +129,7 @@
   #define Z_CS_PIN                          PD11
 #endif
 
-#define E3_STEP_PIN                          PF11  // MOTOR 2 Z Defekt
+#define E3_STEP_PIN                          PF11  // MOTOR 2 (spare, no driver fitted)
 #define E3_DIR_PIN                           PG3
 #define E3_ENABLE_PIN                        PG5
 #ifndef E3_CS_PIN
@@ -240,7 +240,7 @@
 
   #define X_SERIAL_TX_PIN                   PC4
   #define Z_SERIAL_TX_PIN                   PD11
-  #define E3_SERIAL_TX_PIN                  PC6   // Motor 2 defekt
+  #define E3_SERIAL_TX_PIN                  PC6   // Motor 2 (spare, no driver fitted)
   #define E2_SERIAL_TX_PIN                  PC7
   #define E0_SERIAL_TX_PIN                  PF2
   #define E1_SERIAL_TX_PIN                  PE4
